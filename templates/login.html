@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brand Sentineo — Sign In</title>
+    <meta name="description" content="Sign in to Brand Sentineo and analyze real-time brand sentiment across social media and news sources." />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --purple:    #6c47ff;
+            --purple-lt: #a78bfa;
+            --indigo:    #4338ca;
+            --pink:      #ec4899;
+            --bg:        #0f0c29;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(ellipse at 20% 20%, #1e1254 0%, #0f0c29 55%, #160b2c 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+
+        /* ── Floating blobs ── */
+        .blobs {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+            animation: drift 14s ease-in-out infinite alternate;
+        }
+        .blob-1 { width: 500px; height: 500px; left: -160px; top: -120px; background: #6c47ff; animation-delay: 0s; }
+        .blob-2 { width: 380px; height: 380px; right: -100px; top: 80px;  background: #ec4899; animation-delay: 4s; }
+        .blob-3 { width: 320px; height: 320px; left: 40px; bottom: -80px; background: #06b6d4; animation-delay: 8s; }
+
+        @keyframes drift {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(30px, -30px) scale(1.08); }
+        }
+
+        /* ── Card ── */
+        .card {
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            animation: slideUp 0.8s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Logo ── */
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1.8rem;
+        }
+        .logo-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 24px rgba(108,71,255,0.4);
+        }
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        .logo-text span { color: var(--purple-lt); }
+
+        /* ── Heading ── */
+        h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Flash messages ── */
+        .flash {
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+        .flash-info    { background: rgba(99,179,237,0.15); color: #93c5fd; border: 1px solid rgba(99,179,237,0.3); }
+        .flash-warning { background: rgba(251,191,36,0.12); color: #fde68a; border: 1px solid rgba(251,191,36,0.3); }
+        .flash-danger  { background: rgba(239,68,68,0.12);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+        /* ── Consent section ── */
+        .consent-box {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 1.1rem 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .consent-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.8rem;
+        }
+        .consent-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            margin-bottom: 0.7rem;
+            cursor: pointer;
+        }
+        .consent-item:last-child { margin-bottom: 0; }
+        .consent-item input[type="checkbox"] {
+            width: 16px; height: 16px;
+            accent-color: var(--purple);
+            margin-top: 3px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .consent-item label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.45;
+            cursor: pointer;
+        }
+        .consent-item label a {
+            color: var(--purple-lt);
+            text-decoration: underline;
+        }
+
+        /* ── Google button ── */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: #fff;
+            color: #1f1f1f;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        .btn-google:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.3);
+            background: #f5f5f5;
+        }
+        .btn-google.disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn-google svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+        /* ── Lock indicator ── */
+        .lock-notice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 1.4rem;
+            color: rgba(255,255,255,0.3);
+            font-size: 0.8rem;
+        }
+        .lock-notice svg { width: 13px; height: 13px; }
+
+        /* ── Features strip ── */
+        .features {
+            position: relative;
+            z-index: 1;
+            margin-top: 2rem;
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 480px;
+            animation: slideUp 0.8s 0.15s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .feature-chip {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 100px;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.55);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .feature-chip .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--purple-lt);
+        }
+    </style>
+</head>
+<body>
+    <div class="blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="card">
+        <!-- Logo -->
+        <div class="logo-wrap">
+            <div class="logo-icon">📊</div>
+            <div class="logo-text">Brand <span>Sentineo</span></div>
+        </div>
+
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to analyse brand sentiment in real time</p>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Consent -->
+        <div class="consent-box">
+            <div class="consent-title">Before you continue</div>
+            <label class="consent-item">
+                <input type="checkbox" id="ageConsent" />
+                <label for="ageConsent">I confirm I am over 18 years of age.</label>
+            </label>
+            <label class="consent-item">
+                <input type="checkbox" id="dataConsent" />
+                <label for="dataConsent">
+                    I consent to the collection and use of my data as described in the
+                    <a href="https://drive.google.com/file/d/1cDLxW-PIOBdt_SRcnLA4Cdo815cSwjw0/view?usp=sharing" target="_blank" rel="noopener">Privacy Policy</a>.
+                </label>
+            </label>
+        </div>
+
+        <!-- Google Sign-In -->
+        <a id="googleBtn" href="{{ url_for('google_login') }}" class="btn-google disabled" tabindex="-1" aria-disabled="true">
+            <!-- Google G logo -->
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continue with Google
+        </a>
+
+        <div class="lock-notice">
+            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+            Secured by Google OAuth 2.0
+        </div>
+    </div>
+
+    <!-- Feature chips -->
+    <div class="features">
+        <div class="feature-chip"><span class="dot"></span>Reddit Analysis</div>
+        <div class="feature-chip"><span class="dot"></span>News Sentiment</div>
+        <div class="feature-chip"><span class="dot"></span>Event Registry</div>
+        <div class="feature-chip"><span class="dot"></span>Tumblr Insights</div>
+    </div>
+
+    <script>
+        const ageBox  = document.getElementById('ageConsent');
+        const dataBox = document.getElementById('dataConsent');
+        const btn     = document.getElementById('googleBtn');
+
+        function updateBtn() {
+            const ok = ageBox.checked && dataBox.checked;
+            if (ok) {
+                btn.classList.remove('disabled');
+                btn.removeAttribute('tabindex');
+                btn.setAttribute('aria-disabled', 'false');
+            } else {
+                btn.classList.add('disabled');
+                btn.setAttribute('tabindex', '-1');
+                btn.setAttribute('aria-disabled', 'true');
+            }
+        }
+
+        ageBox.addEventListener('change', updateBtn);
+        dataBox.addEventListener('change', updateBtn);
+
+        btn.addEventListener('click', function(e) {
+            if (btn.classList.contains('disabled')) e.preventDefault();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brand Sentineo — Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(ellipse at 20% 20%, #1e1254 0%, #0f0c29 55%, #160b2c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            color: #fff;
+        }
+
+        .blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25; animation: drift 14s ease-in-out infinite alternate; }
+        .blob-1 { width: 480px; height: 480px; left: -140px; top: -100px; background: #6c47ff; }
+        .blob-2 { width: 360px; height: 360px; right: -80px; bottom: 60px; background: #ec4899; animation-delay: 6s; }
+        @keyframes drift { from { transform: translate(0,0); } to { transform: translate(20px,-20px); } }
+
+        .card {
+            position: relative; z-index: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 2.8rem 2.5rem;
+            width: 100%; max-width: 500px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            text-align: center;
+            animation: slideUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+        .logo-icon {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, #6c47ff, #ec4899);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem;
+            margin: 0 auto 1.2rem;
+            box-shadow: 0 8px 24px rgba(108,71,255,0.4);
+        }
+
+        h1 { font-size: 1.7rem; font-weight: 800; margin-bottom: 0.4rem; }
+        .subtitle { color: rgba(255,255,255,0.45); font-size: 0.92rem; margin-bottom: 2rem; }
+
+        .info-box {
+            background: rgba(108,71,255,0.12);
+            border: 1px solid rgba(108,71,255,0.3);
+            border-radius: 14px;
+            padding: 1.2rem 1.4rem;
+            margin-bottom: 1.8rem;
+            color: rgba(255,255,255,0.65);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem; font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6c47ff, #ec4899);
+            color: #fff; border: none;
+            box-shadow: 0 6px 20px rgba(108,71,255,0.35);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(108,71,255,0.5); }
+        .btn-ghost {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.7);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+        .actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="card">
+        <div class="logo-icon">🛡️</div>
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Brand Sentineo — Administration</p>
+
+        <div class="info-box">
+            ℹ️ The application now operates in <strong>stateless mode</strong>.<br/>
+            All sentiment data is fetched live from external APIs on each request.<br/>
+            No data is stored or persisted between sessions.
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('search') }}" class="btn btn-primary">🔍 &nbsp;Go to Search</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-ghost">← Logout</a>
+        </div>
+    </div>
+</body>
+</html>

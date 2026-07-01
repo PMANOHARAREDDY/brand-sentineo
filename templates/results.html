@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brand Sentineo — Results for {{ keyword }}</title>
+    <meta name="description" content="Sentiment analysis results for {{ keyword }} across Reddit, News, EventRegistry and Tumblr." />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --purple:    #6c47ff;
+            --purple-lt: #a78bfa;
+            --pink:      #ec4899;
+            --green:     #22c55e;
+            --red:       #ef4444;
+            --amber:     #f59e0b;
+            --cyan:      #06b6d4;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(ellipse at 20% 20%, #1e1254 0%, #0f0c29 55%, #160b2c 100%);
+            padding: 2rem 1rem 4rem;
+            overflow-y: auto;
+        }
+
+        /* Blobs */
+        .blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25; animation: drift 14s ease-in-out infinite alternate; }
+        .blob-1 { width: 500px; height: 500px; left: -150px; top: -120px; background: #6c47ff; }
+        .blob-2 { width: 380px; height: 380px; right: -100px; bottom: 80px; background: #ec4899; animation-delay: 6s; }
+        @keyframes drift { from { transform: translate(0,0); } to { transform: translate(20px,-20px); } }
+
+        /* Layout wrapper */
+        .wrapper {
+            position: relative; z-index: 1;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* Topbar */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 2.2rem;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 0.55rem; font-size: 1.1rem; font-weight: 800; color: #fff; }
+        .topbar-brand .icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--purple), var(--pink)); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .user-strip { display: flex; align-items: center; gap: 0.65rem; }
+        .user-strip img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); object-fit: cover; }
+        .user-name { font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.6); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .btn-logout { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; padding: 0.35rem 0.8rem; font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+        .btn-logout:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+        /* Page heading */
+        .page-heading { margin-bottom: 1.8rem; animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+        .page-heading h1 { font-size: 1.9rem; font-weight: 800; color: #fff; line-height: 1.2; }
+        .page-heading h1 .kw { color: var(--purple-lt); }
+        .page-heading p { color: rgba(255,255,255,0.4); font-size: 0.9rem; margin-top: 0.4rem; }
+        @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+        /* Overall score card */
+        .overall-card {
+            background: linear-gradient(135deg, rgba(108,71,255,0.25), rgba(236,72,153,0.15));
+            border: 1px solid rgba(108,71,255,0.4);
+            border-radius: 20px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            animation: slideUp 0.65s 0.05s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .overall-score {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .overall-info h2 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+        .overall-info p { font-size: 0.88rem; color: rgba(255,255,255,0.5); }
+
+        /* Score color helpers */
+        .score-very-neg  { color: #ef4444; }
+        .score-neg       { color: #f97316; }
+        .score-neutral   { color: #f59e0b; }
+        .score-pos       { color: #22c55e; }
+        .score-very-pos  { color: #a78bfa; }
+
+        /* Sentiment bar */
+        .sentiment-bar-track {
+            height: 8px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 100px;
+            margin-top: 0.9rem;
+            overflow: hidden;
+        }
+        .sentiment-bar-fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 1s cubic-bezier(0.16,1,0.3,1);
+        }
+
+        /* Source cards grid */
+        .source-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.8rem;
+        }
+        @media (max-width: 560px) { .source-grid { grid-template-columns: 1fr; } }
+
+        .source-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 1.3rem 1.4rem;
+            animation: slideUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .source-card:nth-child(1) { animation-delay: 0.1s; }
+        .source-card:nth-child(2) { animation-delay: 0.15s; }
+        .source-card:nth-child(3) { animation-delay: 0.2s; }
+        .source-card:nth-child(4) { animation-delay: 0.25s; }
+
+        .source-header {
+            display: flex; align-items: center; gap: 0.6rem;
+            margin-bottom: 0.9rem;
+        }
+        .source-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .si-reddit  { background: rgba(255,69,0,0.2);  }
+        .si-news    { background: rgba(6,182,212,0.2); }
+        .si-event   { background: rgba(168,85,247,0.2); }
+        .si-tumblr  { background: rgba(54,88,226,0.2); }
+
+        .source-name { font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.6px; }
+        .source-score { font-size: 1.9rem; font-weight: 800; line-height: 1; margin-bottom: 0.3rem; }
+        .source-label { font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.45); margin-bottom: 0.7rem; }
+
+        /* Verdict box inside source card */
+        .verdict-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 0.65rem 0.8rem;
+        }
+        .verdict-title { font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .verdict-desc  { font-size: 0.78rem; color: rgba(255,255,255,0.45); line-height: 1.45; }
+
+        /* Actions */
+        .actions {
+            display: flex; gap: 1rem; flex-wrap: wrap;
+            animation: slideUp 0.7s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .btn-search-again {
+            flex: 1; min-width: 140px;
+            padding: 0.85rem 1rem;
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            border: none; border-radius: 12px;
+            font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 700; color: #fff;
+            text-decoration: none; text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 20px rgba(108,71,255,0.35);
+        }
+        .btn-search-again:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(108,71,255,0.5); }
+
+        .raw-scores {
+            margin-top: 1.8rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px;
+            padding: 1rem 1.3rem;
+            animation: slideUp 0.7s 0.35s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .raw-scores-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.3); margin-bottom: 0.7rem; }
+        .raw-scores-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.5rem; }
+        @media (max-width: 420px) { .raw-scores-grid { grid-template-columns: repeat(2,1fr); } }
+        .raw-item { text-align: center; }
+        .raw-item-name { font-size: 0.72rem; color: rgba(255,255,255,0.35); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .raw-item-val  { font-size: 1rem; font-weight: 700; color: rgba(255,255,255,0.7); }
+    </style>
+</head>
+<body>
+    <div class="blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="wrapper">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="topbar-brand">
+                <div class="icon">📊</div>
+                Brand Sentineo
+            </div>
+            <div class="user-strip">
+                {% if user_picture %}
+                    <img src="{{ user_picture }}" alt="{{ user_name }}" />
+                {% endif %}
+                <span class="user-name">{{ user_name }}</span>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </div>
+
+        <!-- Heading -->
+        <div class="page-heading">
+            <h1>Results for <span class="kw">"{{ keyword }}"</span></h1>
+            <p>Aggregated from Reddit · NewsAPI · EventRegistry · Tumblr using VADER NLP</p>
+        </div>
+
+        <!-- Overall score -->
+        {% set ov = overall %}
+        <div class="overall-card">
+            <div class="overall-score
+                {% if ov <= -0.6 %}score-very-neg
+                {% elif ov < -0.2 %}score-neg
+                {% elif ov < 0.2  %}score-neutral
+                {% elif ov < 0.6  %}score-pos
+                {% else %}score-very-pos{% endif %}">
+                {{ "%.3f"|format(ov) }}
+            </div>
+            <div class="overall-info">
+                <h2>
+                    {% if ov <= -0.6 %}Severe Negative Sentiment
+                    {% elif ov < -0.2 %}Negative Sentiment
+                    {% elif ov < 0.2  %}Neutral / Mixed Sentiment
+                    {% elif ov < 0.6  %}Positive Sentiment
+                    {% else %}Strong Positive Sentiment{% endif %}
+                </h2>
+                <p>
+                    {% if ov <= -0.6 %}The brand is facing a major reputation crisis across all sources. Immediate action is advised.
+                    {% elif ov < -0.2 %}Negative coverage dominates. Investigate root causes and communicate clearly.
+                    {% elif ov < 0.2  %}Coverage is mixed. Monitor closely and clarify your positioning.
+                    {% elif ov < 0.6  %}Overall sentiment is favourable. Keep up the good work.
+                    {% else %}Excellent brand perception! Leverage this momentum for growth.{% endif %}
+                </p>
+                <!-- Overall bar: map [-1,1] → [0,100]% -->
+                {% set pct = ((ov + 1) / 2 * 100)|round|int %}
+                <div class="sentiment-bar-track">
+                    <div class="sentiment-bar-fill"
+                         style="width: {{ pct }}%;
+                                background: {% if ov <= -0.2 %}#ef4444{% elif ov < 0.2 %}#f59e0b{% else %}#22c55e{% endif %};">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source cards -->
+        <div class="source-grid">
+
+            <!-- Reddit -->
+            {% set s = reddit %}
+            <div class="source-card">
+                <div class="source-header">
+                    <div class="source-icon si-reddit">🤖</div>
+                    <div class="source-name">Reddit</div>
+                </div>
+                <div class="source-score
+                    {% if s <= -0.6 %}score-very-neg
+                    {% elif s < -0.2 %}score-neg
+                    {% elif s < 0.2  %}score-neutral
+                    {% elif s < 0.6  %}score-pos
+                    {% else %}score-very-pos{% endif %}">
+                    {{ "%.3f"|format(s) }}
+                </div>
+                <div class="source-label">
+                    {% if s <= -0.6 %}Very Negative
+                    {% elif s < -0.2 %}Negative
+                    {% elif s < 0.2  %}Neutral
+                    {% elif s < 0.6  %}Positive
+                    {% else %}Very Positive{% endif %}
+                </div>
+                <div class="verdict-box">
+                    <div class="verdict-title
+                        {% if s <= -0.6 %}score-very-neg
+                        {% elif s < -0.2 %}score-neg
+                        {% elif s < 0.2  %}score-neutral
+                        {% elif s < 0.6  %}score-pos
+                        {% else %}score-very-pos{% endif %}">
+                        {% if s <= -0.6 %}🚨 Reputation crisis
+                        {% elif s < -0.2 %}⚠️ Negative community talk
+                        {% elif s < 0.2  %}💬 Mixed discussions
+                        {% elif s < 0.6  %}👍 Generally positive
+                        {% else %}🌟 Community loves it{% endif %}
+                    </div>
+                    <div class="verdict-desc">
+                        {% if s <= -0.6 %}Engage directly with the community and resolve urgent complaints.
+                        {% elif s < -0.2 %}Address common pain points and keep the community updated.
+                        {% elif s < 0.2  %}Gather specific feedback; opinions are divided.
+                        {% elif s < 0.6  %}Thank supporters and address minor concerns.
+                        {% else %}Celebrate advocates and share success stories.{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- News -->
+            {% set s = news %}
+            <div class="source-card">
+                <div class="source-header">
+                    <div class="source-icon si-news">📰</div>
+                    <div class="source-name">NewsAPI</div>
+                </div>
+                <div class="source-score
+                    {% if s <= -0.6 %}score-very-neg
+                    {% elif s < -0.2 %}score-neg
+                    {% elif s < 0.2  %}score-neutral
+                    {% elif s < 0.6  %}score-pos
+                    {% else %}score-very-pos{% endif %}">
+                    {{ "%.3f"|format(s) }}
+                </div>
+                <div class="source-label">
+                    {% if s <= -0.6 %}Very Negative
+                    {% elif s < -0.2 %}Negative
+                    {% elif s < 0.2  %}Neutral
+                    {% elif s < 0.6  %}Positive
+                    {% else %}Very Positive{% endif %}
+                </div>
+                <div class="verdict-box">
+                    <div class="verdict-title
+                        {% if s <= -0.6 %}score-very-neg
+                        {% elif s < -0.2 %}score-neg
+                        {% elif s < 0.2  %}score-neutral
+                        {% elif s < 0.6  %}score-pos
+                        {% else %}score-very-pos{% endif %}">
+                        {% if s <= -0.6 %}🚨 Major negative press
+                        {% elif s < -0.2 %}⚠️ Unfavourable coverage
+                        {% elif s < 0.2  %}💬 Mixed media tone
+                        {% elif s < 0.6  %}👍 Positive press
+                        {% else %}🌟 Strong media endorsement{% endif %}
+                    </div>
+                    <div class="verdict-desc">
+                        {% if s <= -0.6 %}Issue public statements and address critical failures immediately.
+                        {% elif s < -0.2 %}Identify negative narratives and proactively respond.
+                        {% elif s < 0.2  %}Clarify your positioning and monitor for tone shifts.
+                        {% elif s < 0.6  %}Reinforce strengths and share positive stories with media.
+                        {% else %}Use this momentum for brand campaigns and stakeholder outreach.{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Registry -->
+            {% set s = event %}
+            <div class="source-card">
+                <div class="source-header">
+                    <div class="source-icon si-event">🌐</div>
+                    <div class="source-name">EventRegistry</div>
+                </div>
+                <div class="source-score
+                    {% if s <= -0.6 %}score-very-neg
+                    {% elif s < -0.2 %}score-neg
+                    {% elif s < 0.2  %}score-neutral
+                    {% elif s < 0.6  %}score-pos
+                    {% else %}score-very-pos{% endif %}">
+                    {{ "%.3f"|format(s) }}
+                </div>
+                <div class="source-label">
+                    {% if s <= -0.6 %}Very Negative
+                    {% elif s < -0.2 %}Negative
+                    {% elif s < 0.2  %}Neutral
+                    {% elif s < 0.6  %}Positive
+                    {% else %}Very Positive{% endif %}
+                </div>
+                <div class="verdict-box">
+                    <div class="verdict-title
+                        {% if s <= -0.6 %}score-very-neg
+                        {% elif s < -0.2 %}score-neg
+                        {% elif s < 0.2  %}score-neutral
+                        {% elif s < 0.6  %}score-pos
+                        {% else %}score-very-pos{% endif %}">
+                        {% if s <= -0.6 %}🚨 Trending negatively
+                        {% elif s < -0.2 %}⚠️ Negative trending news
+                        {% elif s < 0.2  %}💬 Mixed global coverage
+                        {% elif s < 0.6  %}👍 Favourable news cycle
+                        {% else %}🌟 Highly positive trending{% endif %}
+                    </div>
+                    <div class="verdict-desc">
+                        {% if s <= -0.6 %}Launch an immediate investigation and communicate transparently.
+                        {% elif s < -0.2 %}Resolve pain points and share improvement plans with the public.
+                        {% elif s < 0.2  %}Seek additional feedback and clarify messaging.
+                        {% elif s < 0.6  %}Maintain strong performance and highlight positive developments.
+                        {% else %}Leverage positive coverage for brand-building and innovation.{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tumblr -->
+            {% set s = tumblr %}
+            <div class="source-card">
+                <div class="source-header">
+                    <div class="source-icon si-tumblr">✏️</div>
+                    <div class="source-name">Tumblr</div>
+                </div>
+                <div class="source-score
+                    {% if s <= -0.6 %}score-very-neg
+                    {% elif s < -0.2 %}score-neg
+                    {% elif s < 0.2  %}score-neutral
+                    {% elif s < 0.6  %}score-pos
+                    {% else %}score-very-pos{% endif %}">
+                    {{ "%.3f"|format(s) }}
+                </div>
+                <div class="source-label">
+                    {% if s <= -0.6 %}Very Negative
+                    {% elif s < -0.2 %}Negative
+                    {% elif s < 0.2  %}Neutral
+                    {% elif s < 0.6  %}Positive
+                    {% else %}Very Positive{% endif %}
+                </div>
+                <div class="verdict-box">
+                    <div class="verdict-title
+                        {% if s <= -0.6 %}score-very-neg
+                        {% elif s < -0.2 %}score-neg
+                        {% elif s < 0.2  %}score-neutral
+                        {% elif s < 0.6  %}score-pos
+                        {% else %}score-very-pos{% endif %}">
+                        {% if s <= -0.6 %}🚨 Blogger backlash
+                        {% elif s < -0.2 %}⚠️ Mostly negative posts
+                        {% elif s < 0.2  %}💬 Mixed blog opinions
+                        {% elif s < 0.6  %}👍 Positive blogger sentiment
+                        {% else %}🌟 Bloggers are enthusiastic{% endif %}
+                    </div>
+                    <div class="verdict-desc">
+                        {% if s <= -0.6 %}Engage with bloggers and provide transparent updates.
+                        {% elif s < -0.2 %}Address recurring concerns and share improvement plans.
+                        {% elif s < 0.2  %}Seek direct feedback from creators and monitor trends.
+                        {% elif s < 0.6  %}Recognise positive content and address minor issues.
+                        {% else %}Amplify positive voices and collaborate with creators.{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <a href="{{ url_for('search') }}" class="btn-search-again">🔍 &nbsp;Search Another Brand</a>
+        </div>
+
+        <!-- Raw score table -->
+        <div class="raw-scores">
+            <div class="raw-scores-title">Raw Sentiment Scores (VADER compound: -1 to +1)</div>
+            <div class="raw-scores-grid">
+                <div class="raw-item">
+                    <div class="raw-item-name">Reddit</div>
+                    <div class="raw-item-val">{{ reddit }}</div>
+                </div>
+                <div class="raw-item">
+                    <div class="raw-item-name">News</div>
+                    <div class="raw-item-val">{{ news }}</div>
+                </div>
+                <div class="raw-item">
+                    <div class="raw-item-name">EventReg</div>
+                    <div class="raw-item-val">{{ event }}</div>
+                </div>
+                <div class="raw-item">
+                    <div class="raw-item-name">Tumblr</div>
+                    <div class="raw-item-val">{{ tumblr }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

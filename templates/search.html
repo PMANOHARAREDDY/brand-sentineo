@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brand Sentineo — Search</title>
+    <meta name="description" content="Enter a brand or product name to analyse sentiment across Reddit, News, EventRegistry and Tumblr." />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --purple:    #6c47ff;
+            --purple-lt: #a78bfa;
+            --pink:      #ec4899;
+            --bg:        #0f0c29;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(ellipse at 20% 20%, #1e1254 0%, #0f0c29 55%, #160b2c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+
+        /* Blobs */
+        .blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; animation: drift 14s ease-in-out infinite alternate; }
+        .blob-1 { width: 480px; height: 480px; left: -140px; top: -100px; background: #6c47ff; }
+        .blob-2 { width: 360px; height: 360px; right: -80px; top: 60px; background: #ec4899; animation-delay: 5s; }
+        .blob-3 { width: 300px; height: 300px; left: 30px; bottom: -60px; background: #06b6d4; animation-delay: 10s; }
+        @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(25px,-25px) scale(1.07); } }
+
+        /* Navbar strip */
+        .topbar {
+            position: relative; z-index: 10;
+            width: 100%; max-width: 560px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+        }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 0.55rem;
+            font-size: 1.1rem; font-weight: 800; color: #fff;
+        }
+        .topbar-brand .icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+        }
+        .user-strip {
+            display: flex; align-items: center; gap: 0.65rem;
+        }
+        .user-strip img {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            object-fit: cover;
+        }
+        .user-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.6);
+            border-radius: 8px;
+            padding: 0.35rem 0.8rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+        /* Card */
+        .card {
+            position: relative; z-index: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 2.8rem 2.5rem;
+            width: 100%; max-width: 560px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            animation: slideUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        @keyframes slideUp { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
+
+        h1 {
+            font-size: 2rem; font-weight: 800; color: #fff;
+            line-height: 1.2; margin-bottom: 0.4rem;
+        }
+        h1 span { color: var(--purple-lt); }
+        .subtitle { color: rgba(255,255,255,0.45); font-size: 0.95rem; margin-bottom: 2rem; }
+
+        /* Flash */
+        .flash { border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.92rem; font-weight: 600; }
+        .flash-warning { background: rgba(251,191,36,0.12); color: #fde68a; border: 1px solid rgba(251,191,36,0.3); }
+
+        /* Form elements */
+        .form-group { margin-bottom: 1.4rem; }
+        label.field-label {
+            display: block;
+            font-size: 0.82rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"], select {
+            width: 100%;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 0.85rem 1.1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            color: #fff;
+            outline: none;
+            transition: border 0.2s, background 0.2s;
+            -webkit-appearance: none;
+        }
+        input[type="text"]::placeholder { color: rgba(255,255,255,0.25); }
+        input[type="text"]:focus, select:focus {
+            border-color: var(--purple);
+            background: rgba(108,71,255,0.1);
+        }
+        select option { background: #1a1040; color: #fff; }
+
+        /* Submit button */
+        .btn-analyze {
+            width: 100%;
+            padding: 0.95rem;
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 24px rgba(108,71,255,0.4);
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(108,71,255,0.55); }
+        .btn-analyze:active { transform: translateY(0); }
+        .btn-analyze .spinner { display: none; }
+        .btn-analyze.loading .label { display: none; }
+        .btn-analyze.loading .spinner { display: inline-block; }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(15,12,41,0.85);
+            backdrop-filter: blur(6px);
+            flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 1.2rem;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner-ring {
+            width: 60px; height: 60px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: rgba(255,255,255,0.7); font-size: 1rem; font-weight: 600; }
+        .loading-sub  { color: rgba(255,255,255,0.35); font-size: 0.85rem; }
+
+        /* API chips */
+        .api-chips {
+            display: flex; flex-wrap: wrap; gap: 0.6rem;
+            margin-top: 1.8rem;
+        }
+        .api-chip {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 100px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .api-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--purple-lt); }
+    </style>
+</head>
+<body>
+    <div class="blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-ring"></div>
+        <div class="loading-text">Fetching & Analysing…</div>
+        <div class="loading-sub">Querying Reddit · News · EventRegistry · Tumblr</div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="icon">📊</div>
+            Brand Sentineo
+        </div>
+        <div class="user-strip">
+            {% if user_picture %}
+                <img src="{{ user_picture }}" alt="{{ user_name }}" />
+            {% endif %}
+            <span class="user-name">{{ user_name }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <!-- Search card -->
+    <div class="card">
+        <h1>Analyse a <span>Brand</span></h1>
+        <p class="subtitle">Enter any brand or product name to get live sentiment insights</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('search') }}" method="POST" id="searchForm">
+            <div class="form-group">
+                <label class="field-label" for="keyword">Brand / Product Name</label>
+                <input
+                    type="text"
+                    id="keyword"
+                    name="keyword"
+                    placeholder="e.g. Apple, Tesla, Samsung…"
+                    required
+                    autocomplete="off"
+                />
+            </div>
+
+            <button type="submit" class="btn-analyze" id="analyzeBtn">
+                <span class="label">🔍 &nbsp;Analyse Sentiment</span>
+                <span class="spinner">Analysing…</span>
+            </button>
+        </form>
+
+        <div class="api-chips">
+            <div class="api-chip">Reddit</div>
+            <div class="api-chip">NewsAPI</div>
+            <div class="api-chip">EventRegistry</div>
+            <div class="api-chip">Tumblr</div>
+            <div class="api-chip">VADER NLP</div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('analyzeBtn').classList.add('loading');
+        });
+    </script>
+</body>
+</html>
